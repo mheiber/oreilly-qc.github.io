@@ -4,7 +4,7 @@
 
 // To run this online, go to http://oreilly-qc.github.io?p=2-1
 
-// This sample generates a single random bit.
+// This sample generates a single random bit.!!!!!!!!
 
 qc.reset(1);         // allocate one qubit
 qc.write(0);         // write the value zero

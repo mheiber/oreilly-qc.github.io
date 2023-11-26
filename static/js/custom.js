@@ -364,8 +364,15 @@ function set_current_engine(engine)
     }
 }
 
+let interval = null;
+let lastValue = '';
+
+
 function choose_sample_menu(sample, engine)
 {
+    if (interval) {
+        window.clearInterval(interval);
+    }
     show_graphics_output(false);
     do_sample_special_cases(sample.shortcut);
     console.log('Sample menu chosen: ' + sample.sample_file);
@@ -374,6 +381,17 @@ function choose_sample_menu(sample, engine)
     set_current_engine(engine);
     var sample_menu_button = document.getElementById('sample_menu_button');
     m_title = sample.menu_title
+
+
+    interval = window.setInterval(() => {
+        load_code_sample(sample.sample_file, engine);
+        const currentValue = editor.getValue();
+        if (currentValue !== lastValue) {
+            clear_output();
+            handle_run_button();
+        }
+        lastValue = currentValue;
+    }, 500);
     if(m_title.length > 20) {
         m_title = m_title.substring(0,19)+"...";
     }
