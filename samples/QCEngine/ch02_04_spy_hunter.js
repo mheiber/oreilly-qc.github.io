@@ -4,84 +4,105 @@
 
 // To run this online, go to http://oreilly-qc.github.io?p=2-4
 
+// use classical pseudo-randomness to distinguish what is truly quantum here
+function randBool() {
+    return Math.random() < .5;
+}
+function randBit() {
+    return +randBool();
 
-qc.reset(3);
-qc.discard();
-var a = qint.new(1, 'alice');
-var fiber = qint.new(1, 'fiber');
-var b = qint.new(1, 'bob');
-
-function random_bit(q) {
-    q.write(0);
-    q.had();
-    return q.read();
 }
 
-// Generate two random bits
-qc.label('get two random bits');
-var send_had = random_bit(a);
-var send_value = random_bit(a);
-qc.label('');
-
-// Prepare Alice's qubit
-a.write(0);
-qc.label('set value');
-qc.nop();
-if (send_value)
-    a.not();
-qc.nop();
-qc.label('');
-qc.nop();
-qc.label('apply had');
-qc.nop();
-if (send_had)
-    a.had();
-qc.nop();
-qc.label('');
-
-// Send the qubit!
-fiber.exchange(a);
-
-// Activate the spy
-var spy_is_present = true;
-if (spy_is_present)
-{
-    var spy_had = 1;
+function spy(fiber) {
+    const spyShouldApplyHad = randBool();
     qc.nop();
     qc.label('spy');
-    if (spy_had)
+    if (spyShouldApplyHad) {
         fiber.had();
-    stolen_data = fiber.read();
-    fiber.write(0);
-    if (stolen_data)
-        fiber.not();
-    if (spy_had)
+    }
+    const _stolenData = fiber.read();
+    fiber.write(stolen_data);
+    if (spyShouldApplyHad) {
         fiber.had();
+    }
     qc.label('');
     qc.nop();
 }
 
-// Receive the qubit!
-var recv_had = random_bit(b);
-fiber.exchange(b);
-qc.label('apply had');
-qc.nop();
-if (recv_had)
-    b.had();
-qc.nop();
-qc.label('');
-qc.nop();
-qc.label('read value');
-qc.nop();
-recv_val = b.read();
-qc.nop();
-qc.label('');
-qc.nop();
+function transact() {
+    qc.reset(3);
+    qc.discard();
+    const a = qint.new(1, 'alice');
+    const fiber = qint.new(1, 'fiber');
+    const b = qint.new(1, 'bob');
 
-// Now Alice emails Bob to tell
-// him her had setting and value.
-// If the had setting matches and the
-// value does not, there's a spy!
-if (send_had == recv_had)
-    if (send_value != recv_val)
-        qc.print('Caught a spy!\n');
+    qc.label('get two random bits');
+    const shouldSendHad = randBool();
+    const sendValue = randBit();
+    qc.label('');
+
+    // Prepare Alice's qubit
+    a.write(0);
+    qc.label('set value');
+    qc.nop();
+    if (sendValue) {
+        a.not();
+    }
+    qc.nop();
+    qc.label('');
+    qc.nop();
+    qc.label('apply had');
+    qc.nop();
+    if (shouldSendHad) {
+        a.had();
+    }
+    qc.nop();
+    qc.label('');
+
+    // Send the qubit!
+    fiber.exchange(a);
+
+    spy(fiber);
+
+    // Receive the qubit!
+    let shouldReceiveHad = randBool();
+    fiber.exchange(b);
+    qc.label('apply had');
+    qc.nop();
+    if (shouldReceiveHad) {
+        b.had();
+    }
+    qc.nop();
+    qc.label('');
+    qc.nop();
+    qc.label('read value');
+    qc.nop();
+    shouldReceiveVal = b.read();
+    qc.nop();
+    qc.label('');
+    qc.nop();
+
+    // Now Alice emails Bob to tell
+    // him her had setting and value.
+    // If the had setting matches and the
+    // value does not, there's a spy!
+    return shouldSendHad === shouldReceiveHad && sendValue !== shouldReceiveVal
+}
+
+function main() {
+    const min_samples = 2000;
+    const spy_is_present = true;
+    let caught_count = 0;
+    let sample_count = 1;
+    for (;; sample_count++) {
+        const caught = transact();
+        caught_count += +caught;
+        if (sample_count >= min_samples && caught) {
+            // stop so we can see 
+            break;
+        }
+    }
+    qc.print(`${caught_count / sample_count * 100}% caught = ${caught_count} / ${sample_count}`)
+}
+main();
+
