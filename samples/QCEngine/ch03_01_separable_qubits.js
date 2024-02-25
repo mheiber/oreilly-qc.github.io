@@ -6,8 +6,9 @@
 
 qc.reset(3);
 qc.write(0);
-var qubit1 = qint.new(1, 'qubit 1');
-var qubit2 = qint.new(1, 'qubit 2');
-var qubit3 = qint.new(1, 'qubit 3');
+const qubit1 = qint.new(1, 'qubit 1');
+const qubit2 = qint.new(1, 'qubit 2');
+const qubit3 = qint.new(1, 'qubit 3');
 qubit2.had();
 qubit3.had();
+
